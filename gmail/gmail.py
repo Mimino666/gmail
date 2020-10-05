@@ -36,7 +36,6 @@ class Gmail(object):
             for mailbox in mailbox_list:
                 mailbox_name = decode_utf7(mailbox).split('"/"')[-1].replace('"', '').strip()
                 mailbox = Mailbox(self)
-                mailbox.external_name = mailbox_name
                 self.mailboxes[mailbox_name] = mailbox
 
     def use_mailbox(self, mailbox):

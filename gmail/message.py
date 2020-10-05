@@ -43,7 +43,7 @@ class Message(object):
         self.attachments = None
 
     def is_read(self):
-        return ('\\Seen' in self.flags)
+        return '\\Seen' in self.flags
 
     def read(self):
         flag = '\\Seen'
@@ -58,7 +58,7 @@ class Message(object):
             self.flags.remove(flag)
 
     def is_starred(self):
-        return ('\\Flagged' in self.flags)
+        return '\\Flagged' in self.flags
 
     def star(self):
         flag = '\\Flagged'
@@ -73,11 +73,11 @@ class Message(object):
             self.flags.remove(flag)
 
     def is_draft(self):
-        return ('\\Draft' in self.flags)
+        return '\\Draft' in self.flags
 
     def has_label(self, label):
         full_label = '%s' % label
-        return (full_label in self.labels)
+        return full_label in self.labels
 
     def add_label(self, label):
         full_label = '%s' % label
@@ -92,7 +92,7 @@ class Message(object):
             self.labels.remove(full_label)
 
     def is_deleted(self):
-        return ('\\Deleted' in self.flags)
+        return '\\Deleted' in self.flags
 
     def delete(self):
         flag = '\\Deleted'
@@ -124,24 +124,23 @@ class Message(object):
         return hdrs
 
     def parse_flags(self, headers):
-        return list(ParseFlags(headers))
-        # flags = re.search(r'FLAGS \(([^\)]*)\)', headers).groups(1)[0].split(' ')
+        return [flag.decode('ascii') for flag in ParseFlags(headers)]
 
     def parse_labels(self, headers):
-        if re.search(r'X-GM-LABELS \(([^\)]+)\)', headers):
-            labels = re.search(r'X-GM-LABELS \(([^\)]+)\)', headers).groups(1)[0].split(' ')
-            return [l.replace('"', '').decode("string_escape") for l in labels]
+        match = re.search(r'X-GM-LABELS \(([^\)]+)\)', headers)
+        if match:
+            labels = match.groups(1)[0].split(' ')
+            return [l.replace('"', '') for l in labels]
         else:
             return []
 
     def parse_subject(self, encoded_subject):
         dh = decode_header(encoded_subject)
-        default_charset = 'ASCII'
-        return ''.join([ six.text_type(t[0], t[1] or default_charset) for t in dh ])
+        return ''.join(t[0] for t in dh)
 
     def parse(self, raw_message):
         raw_headers = raw_message[0]
-        raw_email = raw_message[1]
+        raw_email = raw_message[1].decode('ascii')
 
         self.message = email.message_from_string(raw_email)
         self.headers = self.parse_headers(self.message)
@@ -152,25 +151,29 @@ class Message(object):
 
         self.subject = self.parse_subject(self.message['subject'])
 
-        if self.message.get_content_maintype() == "multipart":
+        if self.message.get_content_maintype() == 'multipart':
             for content in self.message.walk():
-                if content.get_content_type() == "text/plain":
+                if content.get_content_type() == 'text/plain':
                     self.body = content.get_payload(decode=True)
-                elif content.get_content_type() == "text/html":
+                elif content.get_content_type() == 'text/html':
                     self.html = content.get_payload(decode=True)
-        elif self.message.get_content_maintype() == "text":
+        elif self.message.get_content_maintype() == 'text':
             self.body = self.message.get_payload()
 
         self.sent_at = datetime.datetime.fromtimestamp(time.mktime(email.utils.parsedate_tz(self.message['date'])[:9]))
 
         self.flags = self.parse_flags(raw_headers)
 
+        raw_headers = raw_headers.decode('ascii')
         self.labels = self.parse_labels(raw_headers)
 
-        if re.search(r'X-GM-THRID (\d+)', raw_headers):
-            self.thread_id = re.search(r'X-GM-THRID (\d+)', raw_headers).groups(1)[0]
-        if re.search(r'X-GM-MSGID (\d+)', raw_headers):
-            self.message_id = re.search(r'X-GM-MSGID (\d+)', raw_headers).groups(1)[0]
+        match = re.search(r'X-GM-THRID (\d+)', raw_headers)
+        if match:
+            self.thread_id = match.groups(1)[0]
+
+        match = re.search(r'X-GM-MSGID (\d+)', raw_headers)
+        if match:
+            self.message_id = match.groups(1)[0]
 
         # Parse attachments into attachment objects array for this message
         self.attachments = [
@@ -181,7 +184,6 @@ class Message(object):
     def fetch(self):
         if not self.message:
             response, results = self.gmail.imap.uid('FETCH', self.uid, '(BODY.PEEK[] FLAGS X-GM-THRID X-GM-MSGID X-GM-LABELS)')
-
             self.parse(results[0])
 
         return self.message

@@ -3,27 +3,14 @@
 from __future__ import absolute_import, unicode_literals, division, print_function
 
 from .message import Message
-from .utf import encode as encode_utf7, decode as decode_utf7
 
 
 class Mailbox(object):
     def __init__(self, gmail, name='INBOX'):
-        self.name = name
         self.gmail = gmail
+        self.name = name
         self.date_format = '%d-%b-%Y'
         self.messages = {}
-
-    @property
-    def external_name(self):
-        if 'external_name' not in vars(self):
-            vars(self)['external_name'] = encode_utf7(self.name)
-        return vars(self)['external_name']
-
-    @external_name.setter
-    def external_name(self, value):
-        if 'external_name' in vars(self):
-            del vars(self)['external_name']
-        self.name = decode_utf7(value)
 
     def mail(self, prefetch=False, **kwargs):
         search = ['ALL']
@@ -62,7 +49,7 @@ class Mailbox(object):
         emails = []
         response, data = self.gmail.imap.uid('SEARCH', *search)
         if response == 'OK':
-            uids = filter(None, data[0].split(' '))  # filter out empty strings
+            uids = filter(None, data[0].decode('ascii').split(' '))  # filter out empty strings
 
             for uid in uids:
                 if not self.messages.get(uid):
