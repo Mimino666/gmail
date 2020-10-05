@@ -1,3 +1,7 @@
+# coding=utf-8
+
+from __future__ import absolute_import, unicode_literals, division, print_function
+
 # The contents of this file has been derived code from the Twisted project
 # (http://twistedmatrix.com/). The original author is Jp Calderone.
 
@@ -10,10 +14,10 @@
 # distribute, sublicense, and/or sell copies of the Software, and to
 # permit persons to whom the Software is furnished to do so, subject to
 # the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,8 +26,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-text_type = unicode
-binary_type = str
+import six
+
 
 PRINTABLE = set(range(0x20, 0x26)) | set(range(0x27, 0x7f))
 
@@ -32,7 +36,7 @@ def encode(s):
 
     Despite the function's name, the output is still a unicode string.
     """
-    if not isinstance(s, text_type):
+    if not isinstance(s, six.text_type):
         return s
 
     r = []
@@ -57,15 +61,16 @@ def encode(s):
 
     return ''.join(r)
 
+
 def decode(s):
     """Decode a folder name from IMAP modified UTF-7 encoding to unicode.
 
     Despite the function's name, the input may still be a unicode
     string. If the input is bytes, it's first decoded to unicode.
     """
-    if isinstance(s, binary_type):
+    if isinstance(s, six.binary_type):
         s = s.decode('latin-1')
-    if not isinstance(s, text_type):
+    if not isinstance(s, six.text_type):
         return s
 
     r = []
@@ -88,10 +93,12 @@ def decode(s):
 
     return ''.join(r)
 
+
 def modified_utf7(s):
     # encode to utf-7: '\xff' => b'+AP8-', decode from latin-1 => '+AP8-'
     s_utf7 = s.encode('utf-7').decode('latin-1')
     return s_utf7[1:-1].replace('/', ',')
+
 
 def modified_deutf7(s):
     s_utf7 = '+' + s.replace(',', '/') + '-'
