@@ -136,7 +136,13 @@ class Message(object):
 
     def parse_subject(self, encoded_subject):
         dh = decode_header(encoded_subject)
-        return ''.join(t[0] for t in dh)
+        tokens = []
+        for t in dh:
+            if isinstance(t[0], six.text_type):
+                tokens.append(t[0])
+            else:
+                tokens.append(six.text_type(t[0], t[1] or 'ascii'))
+        return ''.join(tokens)
 
     def parse(self, raw_message):
         raw_headers = raw_message[0]
